@@ -1,0 +1,13 @@
+import { createRequire } from 'node:module';
+const require = createRequire(import.meta.url);
+const { chromium } = require('C:/Users/FTM-NB/AppData/Roaming/npm/node_modules/openclaw/node_modules/playwright-core');
+const browser = await chromium.launch({headless:true, executablePath:'C:/Program Files (x86)/Microsoft/Edge/Application/msedge.exe', args:['--autoplay-policy=no-user-gesture-required']});
+const page = await browser.newPage();
+await page.setContent('<video id="v" controls></video>');
+await page.locator('#v').evaluate((v) => { v.src = 'http://127.0.0.1:8788/yunnan-journey-family-compressed.mp4'; });
+await page.waitForFunction(() => document.querySelector('#v').readyState >= 1, {timeout: 120000});
+const meta = await page.locator('#v').evaluate(v => ({readyState:v.readyState, duration:v.duration, width:v.videoWidth, height:v.videoHeight}));
+await page.locator('#v').evaluate(v => v.play());
+await page.waitForFunction(() => document.querySelector('#v').ended, {timeout: 120000});
+console.log({...meta, ended:true});
+await browser.close();

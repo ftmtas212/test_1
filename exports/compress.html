@@ -1,0 +1,50 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Compress trip recording</title>
+<video id="source" src="/input.mp4" playsinline preload="auto" style="display:none"></video>
+<canvas id="canvas" width="1280" height="720"></canvas>
+<pre id="status">starting</pre>
+<script>
+const video = document.getElementById('source');
+const canvas = document.getElementById('canvas');
+const ctx = canvas.getContext('2d');
+const status = document.getElementById('status');
+window.done = false;
+
+async function run() {
+  await new Promise((resolve, reject) => { video.onloadedmetadata = resolve; video.onerror = reject; });
+  const scale = Math.min(1, 1280 / video.videoWidth, 720 / video.videoHeight);
+  canvas.width = Math.max(2, Math.round(video.videoWidth * scale));
+  canvas.height = Math.max(2, Math.round(video.videoHeight * scale));
+  const canvasStream = canvas.captureStream(30);
+  let mime = 'video/mp4;codecs=avc1.42E01E,mp4a.40.2';
+  if (!MediaRecorder.isTypeSupported(mime)) mime = 'video/mp4';
+  if (!MediaRecorder.isTypeSupported(mime)) mime = 'video/webm;codecs=vp9,opus';
+  const audioContext = new AudioContext();
+  const audioSource = audioContext.createMediaElementSource(video);
+  const audioDestination = audioContext.createMediaStreamDestination();
+  audioSource.connect(audioDestination);
+  const stream = new MediaStream([...canvasStream.getVideoTracks(), ...audioDestination.stream.getAudioTracks()]);
+  const recorder = new MediaRecorder(stream, { mimeType: mime, videoBitsPerSecond: 1_500_000, audioBitsPerSecond: 96_000 });
+  const chunks = [];
+  recorder.ondataavailable = e => { if (e.data.size) chunks.push(e.data); };
+  recorder.onstop = async () => {
+    const blob = new Blob(chunks, { type: mime });
+    status.textContent = `uploading ${(blob.size / 1024 / 1024).toFixed(1)} MB`;
+    const response = await fetch('/upload', { method: 'POST', headers: {'Content-Type': mime}, body: blob });
+    window.done = response.ok;
+    status.textContent = response.ok ? 'done' : 'upload failed';
+  };
+  await audioContext.resume();
+  await video.play();
+  recorder.start(1000);
+  const draw = () => {
+    ctx.drawImage(video, 0, 0, canvas.width, canvas.height);
+    status.textContent = `recording ${Math.round(video.currentTime / video.duration * 100)}%`;
+    if (!video.ended) requestAnimationFrame(draw);
+  };
+  video.onended = () => setTimeout(() => recorder.stop(), 300);
+  draw();
+}
+run().catch(e => { status.textContent = String(e); window.done = 'error'; });
+</script>
