@@ -1,11 +1,26 @@
-# 雲南十日行程地圖
+# 首爾五日韓國行程手帳
 
-靜態 HTML/CSS/ES modules + vendored Leaflet 1.9.4。正式入口 http://192.168.68.48:8088/ ，owner 為 PVE .20 → Dashboard LXC100。無 GPS、後端、資料庫或機密設定。
+台中出發、2026/12/05 至 12/09 的韓國五天四夜互動行程地圖。頁面以時間軸推估旅途中每個時段的位置，並以 OpenStreetMap 顯示底圖；位置不是 GPS，也不能取代導航。
 
-`public/itinerary.js` 是單一行程來源。`places` 使用 WGS84 概略座標；`rows` 為日期、抵達時間、離開時間、地點、活動、下一段交通方式與航班。每段時間採 UTC+8。場景停留期間固定位置，交通期間對座標線性插值，路線虛線不代表導航。座標未逐一地理編碼驗證，尤其人馬吊橋、龍元村、哈滂瀑布、普卡旺與各觀景台只定位區域。票面航班時間取自使用者照片；其他時間為人工估算。
+## 內容
 
-本機：`python -m http.server 8768 --bind 127.0.0.1 --directory apps/yunnan-journey/public`。
+- 水原 Starfield 星空圖書館 2.0、水原華城、愛寶樂園
+- 南山塔與愛情鎖牆、廣藏市場、COEX Aquarium、COEX Mall
+- 恩平韓屋村、益善洞、明洞、Mohegan INSPIRE
+- TW670 台中 → 仁川、TW669 仁川 → 台中
 
-測試：`node --test apps/yunnan-journey/tests/itinerary.test.mjs`。維運、部署、回復與限制見 [runbook](../../docs/runbooks/yunnan-journey.md)。
+`public/itinerary.js` 是單一行程來源；景點座標與停留時間是概略估算，航班時間依提供的行程 PDF。PDF 未提供飯店個人資料，本專案也不儲存 GPS、姓名、電話或地址。
 
-Leaflet 來源：https://unpkg.com/leaflet@1.9.4/dist/leaflet.js 與同版 CSS；BSD-2-Clause 授權存 `public/vendor/LICENSE`。參考 [Leaflet 官方 quick start](https://leafletjs.com/examples/quick-start/)。OpenStreetMap 瓦片由瀏覽器即時載入，保留 attribution 與正常瀏覽器快取，不預抓／批量下載，遵守 [瓦片使用政策](https://operations.osmfoundation.org/policies/tiles/)。離線時行程仍可用，但底圖可能無法顯示。
+## 本機執行
+
+```sh
+python -m http.server 8768 --bind 127.0.0.1 --directory public
+```
+
+測試：
+
+```sh
+node --test tests/itinerary.test.mjs
+```
+
+GitHub Actions 會在 `main` 更新後，把 `public/` 發布到 `gh-pages`。Leaflet 使用本地 vendored 版本，OpenStreetMap 瓦片由瀏覽器即時載入並保留 attribution；離線時仍可操作時間軸，但底圖可能無法顯示。
